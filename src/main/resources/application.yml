@@ -20,9 +20,6 @@ spring:
     init:
       mode: never
 
-  profiles:
-    active: local
-
 server:
   port: 8080
 
