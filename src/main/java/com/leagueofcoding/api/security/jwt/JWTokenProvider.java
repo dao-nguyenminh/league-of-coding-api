@@ -1,6 +1,5 @@
 package com.leagueofcoding.api.security.jwt;
 
-import com.leagueofcoding.api.security.UserPrincipal;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
@@ -16,8 +15,6 @@ import java.util.Date;
 /**
  * JWT Token Provider - Generate và validate JWT tokens.
  *
- * <p>Sử dụng HS256 algorithm, token expiration configurable qua application.yml.
- *
  * @author dao-nguyenminh
  */
 @Component
@@ -27,21 +24,18 @@ public class JWTokenProvider {
     @Value("${jwt.secret}")
     private String secretKey;
 
-    @Value("${jwt.expiration}")
-    private Long expiration;
+    @Value("${jwt.access-token-expiration}")
+    private Long accessTokenExpiration;
 
     /**
-     * Generate JWT token từ authenticated user.
-     *
-     * @param authentication Spring Security Authentication object
-     * @return JWT token string (format: header.payload.signature)
+     * Generate access token (short-lived).
      */
-    public String generateToken(Authentication authentication) {
+    public String generateAccessToken(Authentication authentication) {
         Object principal = authentication.getPrincipal();
         Long userId = extractUserId(principal);
 
         Date now = new Date();
-        Date expiry = new Date(now.getTime() + expiration);
+        Date expiry = new Date(now.getTime() + accessTokenExpiration);
 
         return Jwts.builder()
                 .subject(String.valueOf(userId))
@@ -53,10 +47,6 @@ public class JWTokenProvider {
 
     /**
      * Extract user ID từ JWT token.
-     *
-     * @param token JWT token string
-     * @return User ID
-     * @throws JwtException nếu token invalid
      */
     public Long getUserIdFromToken(String token) {
         Claims claims = getClaimsFromToken(token);
@@ -64,10 +54,7 @@ public class JWTokenProvider {
     }
 
     /**
-     * Validate JWT token (signature, expiration, format).
-     *
-     * @param token JWT token string
-     * @return true nếu token valid, false nếu invalid
+     * Validate JWT token.
      */
     public boolean validateToken(String token) {
         try {
@@ -93,9 +80,7 @@ public class JWTokenProvider {
     }
 
     /**
-     * Generate SecretKey từ secret string cho HS256 algorithm.
-     *
-     * @return SecretKey object
+     * Generate SecretKey.
      */
     private SecretKey getSecretKey() {
         byte[] bytes = secretKey.getBytes(StandardCharsets.UTF_8);
@@ -103,23 +88,17 @@ public class JWTokenProvider {
     }
 
     /**
-     * Extract user ID từ authentication principal.
-     *
-     * @param principal authentication principal object
-     * @return User ID
+     * Extract user ID từ principal.
      */
     private Long extractUserId(Object principal) {
-        if (principal instanceof UserPrincipal) {
-            return ((UserPrincipal) principal).getId();
+        if (principal instanceof com.leagueofcoding.api.security.UserPrincipal) {
+            return ((com.leagueofcoding.api.security.UserPrincipal) principal).getId();
         }
         throw new IllegalArgumentException("Invalid principal type");
     }
 
     /**
-     * Extract tất cả claims từ JWT token.
-     *
-     * @param token JWT token string
-     * @return Claims object chứa payload
+     * Extract claims từ token.
      */
     private Claims getClaimsFromToken(String token) {
         return Jwts.parser()

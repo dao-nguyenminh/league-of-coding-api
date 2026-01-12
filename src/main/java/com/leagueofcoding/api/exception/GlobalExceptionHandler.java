@@ -114,4 +114,21 @@ public class GlobalExceptionHandler {
 
         return problemDetail;
     }
+
+    /**
+     * Handle invalid refresh token.
+     */
+    @ExceptionHandler(InvalidRefreshTokenException.class)
+    public ProblemDetail handleInvalidRefreshToken(InvalidRefreshTokenException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.UNAUTHORIZED,
+                ex.getMessage()
+        );
+
+        problemDetail.setTitle("Invalid Refresh Token");
+        problemDetail.setType(URI.create("https://api.leagueofcoding.com/errors/invalid-refresh-token"));
+        problemDetail.setProperty("timestamp", Instant.now());
+
+        return problemDetail;
+    }
 }

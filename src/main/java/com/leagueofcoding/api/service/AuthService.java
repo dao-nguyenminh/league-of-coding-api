@@ -4,6 +4,7 @@ import com.leagueofcoding.api.dto.AuthResponse;
 import com.leagueofcoding.api.dto.LoginRequest;
 import com.leagueofcoding.api.dto.RegisterRequest;
 import com.leagueofcoding.api.dto.UserResponse;
+import com.leagueofcoding.api.entity.RefreshToken;
 import com.leagueofcoding.api.entity.User;
 import com.leagueofcoding.api.exception.EmailAlreadyExistsException;
 import com.leagueofcoding.api.exception.UsernameAlreadyExistsException;
@@ -32,26 +33,23 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
-    private final JWTokenProvider jwTokenProvider;
+    private final JWTokenProvider jwtTokenProvider;
+    private final RefreshTokenService refreshTokenService;
 
     /**
      * Register user mới.
-     *
-     * @param request RegisterRequest
-     * @return AuthResponse chứa token và user info
      */
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         log.info("Registering new user: {}", request.username());
 
-        // Check username uniqueness
+        // Check uniqueness
         if (userRepository.existsByUsername(request.username())) {
             throw new UsernameAlreadyExistsException(
                     "Username '" + request.username() + "' is already taken"
             );
         }
 
-        // Check email uniqueness
         if (userRepository.existsByEmail(request.email())) {
             throw new EmailAlreadyExistsException(
                     "Email '" + request.email() + "' is already registered"
@@ -72,27 +70,30 @@ public class AuthService {
         user = userRepository.save(user);
         log.info("User registered successfully: {}", user.getId());
 
-        // Generate token
+        // Generate tokens
         UserPrincipal userPrincipal = UserPrincipal.create(user);
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 userPrincipal, null, userPrincipal.getAuthorities()
         );
-        String token = jwTokenProvider.generateToken(authentication);
 
-        return new AuthResponse(token, UserResponse.from(user));
+        String accessToken = jwtTokenProvider.generateAccessToken(authentication);
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+
+        return new AuthResponse(
+                accessToken,
+                refreshToken.getToken(),
+                UserResponse.from(user)
+        );
     }
 
     /**
      * Login user.
-     *
-     * @param request LoginRequest
-     * @return AuthResponse chứa token và user info
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         log.info("User login attempt: {}", request.username());
 
-        // Authenticate credentials
+        // Authenticate
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.username(),
@@ -100,16 +101,60 @@ public class AuthService {
                 )
         );
 
-        // Generate token
-        String token = jwTokenProvider.generateToken(authentication);
-
-        // Get user info
+        // Get user
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
         User user = userRepository.findById(userPrincipal.getId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // Generate tokens
+        String accessToken = jwtTokenProvider.generateAccessToken(authentication);
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
+
         log.info("User logged in successfully: {}", user.getId());
 
-        return new AuthResponse(token, UserResponse.from(user));
+        return new AuthResponse(
+                accessToken,
+                refreshToken.getToken(),
+                UserResponse.from(user)
+        );
+    }
+
+    /**
+     * Refresh access token using refresh token.
+     */
+    @Transactional
+    public AuthResponse refreshAccessToken(String refreshTokenString) {
+        log.info("Refreshing access token");
+
+        // Validate refresh token
+        RefreshToken refreshToken = refreshTokenService.validateRefreshToken(refreshTokenString);
+        User user = refreshToken.getUser();
+
+        // Generate new access token
+        UserPrincipal userPrincipal = UserPrincipal.create(user);
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                userPrincipal, null, userPrincipal.getAuthorities()
+        );
+        String newAccessToken = jwtTokenProvider.generateAccessToken(authentication);
+
+        // Token rotation: Generate new refresh token
+        RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user);
+
+        log.info("Access token refreshed for user: {}", user.getId());
+
+        return new AuthResponse(
+                newAccessToken,
+                newRefreshToken.getToken(),
+                UserResponse.from(user)
+        );
+    }
+
+    /**
+     * Logout user (revoke refresh token).
+     */
+    @Transactional
+    public void logout(String refreshTokenString) {
+        log.info("User logout");
+        refreshTokenService.revokeRefreshToken(refreshTokenString);
     }
 }

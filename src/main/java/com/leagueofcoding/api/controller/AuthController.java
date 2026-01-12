@@ -1,9 +1,6 @@
 package com.leagueofcoding.api.controller;
 
-import com.leagueofcoding.api.dto.AuthResponse;
-import com.leagueofcoding.api.dto.LoginRequest;
-import com.leagueofcoding.api.dto.RegisterRequest;
-import com.leagueofcoding.api.dto.UserResponse;
+import com.leagueofcoding.api.dto.*;
 import com.leagueofcoding.api.entity.User;
 import com.leagueofcoding.api.exception.UserNotFoundException;
 import com.leagueofcoding.api.repository.UserRepository;
@@ -36,7 +33,7 @@ public class AuthController {
 
     @Operation(
             summary = "Register new user",
-            description = "Create new account with username, email, and password. Returns JWT token."
+            description = "Create new account. Returns access token (15 min) and refresh token (7 days)."
     )
     @ApiResponse(responseCode = "201", description = "User registered successfully")
     @ApiResponse(responseCode = "400", description = "Validation error")
@@ -49,7 +46,7 @@ public class AuthController {
 
     @Operation(
             summary = "Login user",
-            description = "Authenticate user and return JWT token (valid for 24 hours)."
+            description = "Authenticate user. Returns access token (15 min) and refresh token (7 days)."
     )
     @ApiResponse(responseCode = "200", description = "Login successful")
     @ApiResponse(responseCode = "401", description = "Invalid credentials")
@@ -57,6 +54,30 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Refresh access token",
+            description = "Get new access token using refresh token. Token rotation: old refresh token revoked, new one issued."
+    )
+    @ApiResponse(responseCode = "200", description = "Token refreshed successfully")
+    @ApiResponse(responseCode = "401", description = "Invalid, expired, or revoked refresh token")
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        AuthResponse response = authService.refreshAccessToken(request.refreshToken());
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "Logout user",
+            description = "Revoke refresh token. Access token will remain valid until expiration (15 min)."
+    )
+    @ApiResponse(responseCode = "200", description = "Logout successful")
+    @ApiResponse(responseCode = "401", description = "Invalid refresh token")
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@Valid @RequestBody RefreshTokenRequest request) {
+        authService.logout(request.refreshToken());
+        return ResponseEntity.ok().build();
     }
 
     @Operation(
