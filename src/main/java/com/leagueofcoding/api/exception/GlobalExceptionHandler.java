@@ -158,4 +158,55 @@ public class GlobalExceptionHandler {
                 .headers(headers)
                 .body(problemDetail);
     }
+
+    /**
+     * Handle problem not found.
+     */
+    @ExceptionHandler(ProblemNotFoundException.class)
+    public ProblemDetail handleProblemNotFound(ProblemNotFoundException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.NOT_FOUND,
+                ex.getMessage()
+        );
+
+        problemDetail.setTitle("Problem Not Found");
+        problemDetail.setType(URI.create("https://api.leagueofcoding.com/errors/problem-not-found"));
+        problemDetail.setProperty("timestamp", Instant.now());
+
+        return problemDetail;
+    }
+
+    /**
+     * Handle category not found.
+     */
+    @ExceptionHandler(CategoryNotFoundException.class)
+    public ProblemDetail handleCategoryNotFound(CategoryNotFoundException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.NOT_FOUND,
+                ex.getMessage()
+        );
+
+        problemDetail.setTitle("Category Not Found");
+        problemDetail.setType(URI.create("https://api.leagueofcoding.com/errors/category-not-found"));
+        problemDetail.setProperty("timestamp", Instant.now());
+
+        return problemDetail;
+    }
+
+    /**
+     * Handle slug already exists.
+     */
+    @ExceptionHandler(SlugAlreadyExistsException.class)
+    public ProblemDetail handleSlugAlreadyExists(SlugAlreadyExistsException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.CONFLICT,
+                ex.getMessage()
+        );
+
+        problemDetail.setTitle("Slug Already Exists");
+        problemDetail.setType(URI.create("https://api.leagueofcoding.com/errors/slug-exists"));
+        problemDetail.setProperty("timestamp", Instant.now());
+
+        return problemDetail;
+    }
 }
