@@ -1,7 +1,9 @@
 package com.leagueofcoding.api.exception;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -130,5 +132,30 @@ public class GlobalExceptionHandler {
         problemDetail.setProperty("timestamp", Instant.now());
 
         return problemDetail;
+    }
+
+    /**
+     * Handle rate limit exceeded.
+     */
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ProblemDetail> handleRateLimitExceeded(RateLimitExceededException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.TOO_MANY_REQUESTS,
+                ex.getMessage()
+        );
+
+        problemDetail.setTitle("Rate Limit Exceeded");
+        problemDetail.setType(URI.create("https://api.leagueofcoding.com/errors/rate-limit-exceeded"));
+        problemDetail.setProperty("timestamp", Instant.now());
+        problemDetail.setProperty("retryAfter", ex.getRetryAfterSeconds() + " seconds");
+
+        // Set Retry-After header (HTTP standard)
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Retry-After", String.valueOf(ex.getRetryAfterSeconds()));
+
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .headers(headers)
+                .body(problemDetail);
     }
 }

@@ -6,10 +6,12 @@ import com.leagueofcoding.api.exception.UserNotFoundException;
 import com.leagueofcoding.api.repository.UserRepository;
 import com.leagueofcoding.api.security.UserPrincipal;
 import com.leagueofcoding.api.service.AuthService;
+import com.leagueofcoding.api.util.IpUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -33,26 +35,38 @@ public class AuthController {
 
     @Operation(
             summary = "Register new user",
-            description = "Create new account. Returns access token (15 min) and refresh token (7 days)."
+            description = "Create new account. Rate limit: 3 requests/hour per IP. " +
+                    "Returns access token (15 min) and refresh token (7 days)."
     )
     @ApiResponse(responseCode = "201", description = "User registered successfully")
     @ApiResponse(responseCode = "400", description = "Validation error")
     @ApiResponse(responseCode = "409", description = "Username or email already exists")
+    @ApiResponse(responseCode = "429", description = "Rate limit exceeded (3 requests/hour)")
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        AuthResponse response = authService.register(request);
+    public ResponseEntity<AuthResponse> register(
+            @Valid @RequestBody RegisterRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        String clientIp = IpUtils.getClientIp(httpRequest);
+        AuthResponse response = authService.register(request, clientIp);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @Operation(
             summary = "Login user",
-            description = "Authenticate user. Returns access token (15 min) and refresh token (7 days)."
+            description = "Authenticate user. Rate limit: 5 requests/minute per IP. " +
+                    "Returns access token (15 min) and refresh token (7 days)."
     )
     @ApiResponse(responseCode = "200", description = "Login successful")
     @ApiResponse(responseCode = "401", description = "Invalid credentials")
+    @ApiResponse(responseCode = "429", description = "Rate limit exceeded (5 requests/minute)")
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        AuthResponse response = authService.login(request);
+    public ResponseEntity<AuthResponse> login(
+            @Valid @RequestBody LoginRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        String clientIp = IpUtils.getClientIp(httpRequest);
+        AuthResponse response = authService.login(request, clientIp);
         return ResponseEntity.ok(response);
     }
 

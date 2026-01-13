@@ -7,8 +7,10 @@ import com.leagueofcoding.api.dto.UserResponse;
 import com.leagueofcoding.api.entity.RefreshToken;
 import com.leagueofcoding.api.entity.User;
 import com.leagueofcoding.api.exception.EmailAlreadyExistsException;
+import com.leagueofcoding.api.exception.RateLimitExceededException;
 import com.leagueofcoding.api.exception.UsernameAlreadyExistsException;
 import com.leagueofcoding.api.repository.UserRepository;
+import com.leagueofcoding.api.security.RateLimitService;
 import com.leagueofcoding.api.security.UserPrincipal;
 import com.leagueofcoding.api.security.jwt.JWTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -35,13 +37,22 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JWTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
+    private final RateLimitService rateLimitService;
 
     /**
-     * Register user mới.
+     * Register user mới với rate limiting.
      */
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
-        log.info("Registering new user: {}", request.username());
+    public AuthResponse register(RegisterRequest request, String clientIp) {
+        log.info("Registering new user: {} from IP: {}", request.username(), clientIp);
+
+        // Check rate limit
+        if (!rateLimitService.tryConsumeRegister(clientIp)) {
+            throw new RateLimitExceededException(
+                    "Too many registration attempts. Please try again later.",
+                    3600 // 1 hour
+            );
+        }
 
         // Check uniqueness
         if (userRepository.existsByUsername(request.username())) {
@@ -87,11 +98,19 @@ public class AuthService {
     }
 
     /**
-     * Login user.
+     * Login user với rate limiting.
      */
     @Transactional
-    public AuthResponse login(LoginRequest request) {
-        log.info("User login attempt: {}", request.username());
+    public AuthResponse login(LoginRequest request, String clientIp) {
+        log.info("User login attempt: {} from IP: {}", request.username(), clientIp);
+
+        // Check rate limit
+        if (!rateLimitService.tryConsumeLogin(clientIp)) {
+            throw new RateLimitExceededException(
+                    "Too many login attempts. Please try again in a minute.",
+                    60 // 1 minute
+            );
+        }
 
         // Authenticate
         Authentication authentication = authenticationManager.authenticate(
@@ -126,18 +145,15 @@ public class AuthService {
     public AuthResponse refreshAccessToken(String refreshTokenString) {
         log.info("Refreshing access token");
 
-        // Validate refresh token
         RefreshToken refreshToken = refreshTokenService.validateRefreshToken(refreshTokenString);
         User user = refreshToken.getUser();
 
-        // Generate new access token
         UserPrincipal userPrincipal = UserPrincipal.create(user);
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 userPrincipal, null, userPrincipal.getAuthorities()
         );
         String newAccessToken = jwtTokenProvider.generateAccessToken(authentication);
 
-        // Token rotation: Generate new refresh token
         RefreshToken newRefreshToken = refreshTokenService.createRefreshToken(user);
 
         log.info("Access token refreshed for user: {}", user.getId());
