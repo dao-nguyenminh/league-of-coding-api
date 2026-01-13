@@ -1,5 +1,6 @@
 package com.leagueofcoding.api.entity;
 
+import com.leagueofcoding.api.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -27,6 +28,11 @@ public class User {
 
     @Column(name = "password", nullable = false)
     private String password;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false, length = 20)
+    @Builder.Default
+    private Role role = Role.USER;
 
     @Builder.Default
     @Column(name = "rating", nullable = false)

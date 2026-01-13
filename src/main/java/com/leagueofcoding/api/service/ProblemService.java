@@ -191,6 +191,54 @@ public class ProblemService {
     }
 
     /**
+     * Search problems by query with filters.
+     */
+    @Transactional(readOnly = true)
+    public Page<ProblemSummaryResponse> searchProblems(String query, Difficulty difficulty, Long categoryId, Pageable pageable) {
+        log.info("Searching problems - query: {}, difficulty: {}, categoryId: {}", query, difficulty, categoryId);
+
+        Page<Problem> problems;
+
+        if (difficulty != null && categoryId != null) {
+            problems = problemRepository.searchByQueryAndCategoryAndDifficultyAndActive(
+                    query, categoryId, difficulty, pageable
+            );
+        } else if (difficulty != null) {
+            problems = problemRepository.searchByQueryAndDifficultyAndActive(query, difficulty, pageable);
+        } else if (categoryId != null) {
+            problems = problemRepository.searchByQueryAndCategoryAndActive(query, categoryId, pageable);
+        } else {
+            problems = problemRepository.searchByQueryAndActive(query, pageable);
+        }
+
+        return problems.map(ProblemSummaryResponse::from);
+    }
+
+    /**
+     * Get random problems for practice.
+     */
+    @Transactional(readOnly = true)
+    public List<ProblemSummaryResponse> getRandomProblems(int count, Difficulty difficulty, Long categoryId) {
+        log.info("Getting random problems - count: {}, difficulty: {}, categoryId: {}", count, difficulty, categoryId);
+
+        List<Problem> problems;
+
+        if (difficulty != null && categoryId != null) {
+            problems = problemRepository.findRandomByCategoryAndDifficultyAndActive(categoryId, difficulty.name(), count);
+        } else if (difficulty != null) {
+            problems = problemRepository.findRandomByDifficultyAndActive(difficulty.name(), count);
+        } else if (categoryId != null) {
+            problems = problemRepository.findRandomByCategoryAndActive(categoryId, count);
+        } else {
+            problems = problemRepository.findRandomByActive(count);
+        }
+
+        return problems.stream()
+                .map(ProblemSummaryResponse::from)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Delete problem (Admin only - soft delete).
      */
     @Transactional

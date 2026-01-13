@@ -2,6 +2,8 @@ package com.leagueofcoding.api.repository;
 
 import com.leagueofcoding.api.entity.Category;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -28,4 +30,10 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
      * Check if category exists by slug.
      */
     boolean existsBySlug(String slug);
+
+    /**
+     * Count problems in category.
+     */
+    @Query("SELECT COUNT(p) FROM Problem p WHERE p.category.id = :categoryId AND p.isActive = true")
+    long countActiveProblemsByCategoryId(@Param("categoryId") Long categoryId);
 }

@@ -1,44 +1,46 @@
 package com.leagueofcoding.api.dto.problem;
 
 import com.leagueofcoding.api.entity.Problem;
-import com.leagueofcoding.api.enums.Difficulty;
+import lombok.Builder;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * ProblemResponse - DTO cho problem details.
+ * ProblemResponse - DTO cho detailed problem responses.
  *
  * @author dao-nguyenminh
  */
+@Builder
 public record ProblemResponse(
         Long id,
         String title,
         String slug,
         String description,
-        Difficulty difficulty,
+        String difficulty,
         Integer timeLimitMs,
         Integer memoryLimitMb,
-        CategoryResponse category,
-        List<TestCaseResponse> sampleTestCases,
-        Boolean isActive,
+        String categoryName,
+        String categorySlug,
+        String createdBy,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        List<TestCaseResponse> sampleTestCases
 ) {
+
     public static ProblemResponse from(Problem problem, List<TestCaseResponse> sampleTestCases) {
-        return new ProblemResponse(
-                problem.getId(),
-                problem.getTitle(),
-                problem.getSlug(),
-                problem.getDescription(),
-                problem.getDifficulty(),
-                problem.getTimeLimitMs(),
-                problem.getMemoryLimitMb(),
-                CategoryResponse.from(problem.getCategory()),
-                sampleTestCases,
-                problem.getIsActive(),
-                problem.getCreatedAt(),
-                problem.getUpdatedAt()
-        );
+        return ProblemResponse.builder()
+                .id(problem.getId())
+                .title(problem.getTitle())
+                .slug(problem.getSlug())
+                .description(problem.getDescription())
+                .difficulty(problem.getDifficulty().name())
+                .timeLimitMs(problem.getTimeLimitMs())
+                .memoryLimitMb(problem.getMemoryLimitMb())
+                .categoryName(problem.getCategory().getName())
+                .categorySlug(problem.getCategory().getSlug())
+                .createdBy(problem.getCreatedBy().getUsername())
+                .createdAt(problem.getCreatedAt())
+                .sampleTestCases(sampleTestCases)
+                .build();
     }
 }

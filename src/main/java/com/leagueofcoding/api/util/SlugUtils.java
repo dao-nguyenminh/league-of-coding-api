@@ -1,14 +1,18 @@
 package com.leagueofcoding.api.util;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
 import java.text.Normalizer;
-import java.util.Locale;
 import java.util.regex.Pattern;
 
 /**
- * SlugUtils - Generate SEO-friendly slugs from titles.
+ * SlugUtils - Utility class cho generating URL-friendly slugs.
  *
  * @author dao-nguyenminh
  */
+@Slf4j
+@Component
 public class SlugUtils {
 
     private static final Pattern NON_LATIN = Pattern.compile("[^\\w-]");
@@ -16,26 +20,45 @@ public class SlugUtils {
 
     /**
      * Generate slug from title.
-     * <p>
-     * Example: "Two Sum Problem!" → "two-sum-problem"
      */
     public static String generateSlug(String title) {
-        String noWhitespace = WHITESPACE.matcher(title).replaceAll("-");
-        String normalized = Normalizer.normalize(noWhitespace, Normalizer.Form.NFD);
-        String slug = NON_LATIN.matcher(normalized).replaceAll("");
-        return slug.toLowerCase(Locale.ENGLISH)
-                .replaceAll("-+", "-")
-                .replaceAll("^-|-$", "");
+        log.debug("Generating slug for title: {}", title);
+
+        if (title == null || title.trim().isEmpty()) {
+            throw new IllegalArgumentException("Title cannot be null or empty");
+        }
+
+        // Normalize to NFD to remove accents
+        String normalized = Normalizer.normalize(title, Normalizer.Form.NFD);
+
+        // Remove non-ASCII characters
+        String withoutAccents = normalized.replaceAll("[^\\p{ASCII}]", "");
+
+        // Convert to lowercase and replace spaces with hyphens
+        String slug = WHITESPACE.matcher(withoutAccents.toLowerCase())
+                .replaceAll("-");
+
+        // Remove non-word characters except hyphens
+        slug = NON_LATIN.matcher(slug)
+                .replaceAll("");
+
+        // Remove leading/trailing hyphens
+        slug = slug.replaceAll("^-|-$", "");
+
+        log.debug("Generated slug: {}", slug);
+        return slug;
     }
 
     /**
-     * Generate unique slug by appending number if needed.
+     * Generate unique slug with attempt number.
      */
     public static String generateUniqueSlug(String baseSlug, int attempt) {
-        return attempt == 0 ? baseSlug : baseSlug + "-" + attempt;
-    }
+        log.debug("Generating unique slug: {} (attempt: {})", baseSlug, attempt);
 
-    private SlugUtils() {
-        // Utility class
+        if (attempt == 1) {
+            return baseSlug;
+        }
+
+        return baseSlug + "-" + attempt;
     }
 }

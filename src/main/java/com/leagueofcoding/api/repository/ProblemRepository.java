@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -56,6 +57,75 @@ public interface ProblemRepository extends JpaRepository<Problem, Long> {
             @Param("categoryId") Long categoryId,
             @Param("difficulty") Difficulty difficulty,
             Pageable pageable
+    );
+
+    /**
+     * Search problems by query with filters.
+     */
+    @Query("SELECT p FROM Problem p WHERE " +
+            "(LOWER(p.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(p.description) LIKE LOWER(CONCAT('%', :query, '%'))) " +
+            "AND p.isActive = true")
+    Page<Problem> searchByQueryAndActive(@Param("query") String query, Pageable pageable);
+
+    @Query("SELECT p FROM Problem p WHERE " +
+            "(LOWER(p.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(p.description) LIKE LOWER(CONCAT('%', :query, '%'))) " +
+            "AND p.difficulty = :difficulty AND p.isActive = true")
+    Page<Problem> searchByQueryAndDifficultyAndActive(
+            @Param("query") String query,
+            @Param("difficulty") Difficulty difficulty,
+            Pageable pageable
+    );
+
+    @Query("SELECT p FROM Problem p WHERE " +
+            "(LOWER(p.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(p.description) LIKE LOWER(CONCAT('%', :query, '%'))) " +
+            "AND p.category.id = :categoryId AND p.isActive = true")
+    Page<Problem> searchByQueryAndCategoryAndActive(
+            @Param("query") String query,
+            @Param("categoryId") Long categoryId,
+            Pageable pageable
+    );
+
+    @Query("SELECT p FROM Problem p WHERE " +
+            "(LOWER(p.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(p.description) LIKE LOWER(CONCAT('%', :query, '%'))) " +
+            "AND p.category.id = :categoryId AND p.difficulty = :difficulty AND p.isActive = true")
+    Page<Problem> searchByQueryAndCategoryAndDifficultyAndActive(
+            @Param("query") String query,
+            @Param("categoryId") Long categoryId,
+            @Param("difficulty") Difficulty difficulty,
+            Pageable pageable
+    );
+
+    /**
+     * Get random problems for practice.
+     */
+    @Query(value = "SELECT * FROM problems WHERE is_active = true ORDER BY RANDOM() LIMIT :count",
+            nativeQuery = true)
+    List<Problem> findRandomByActive(@Param("count") int count);
+
+    @Query(value = "SELECT * FROM problems WHERE is_active = true AND difficulty = :difficulty " +
+            "ORDER BY RANDOM() LIMIT :count", nativeQuery = true)
+    List<Problem> findRandomByDifficultyAndActive(
+            @Param("difficulty") String difficulty,
+            @Param("count") int count
+    );
+
+    @Query(value = "SELECT * FROM problems WHERE is_active = true AND category_id = :categoryId " +
+            "ORDER BY RANDOM() LIMIT :count", nativeQuery = true)
+    List<Problem> findRandomByCategoryAndActive(
+            @Param("categoryId") Long categoryId,
+            @Param("count") int count
+    );
+
+    @Query(value = "SELECT * FROM problems WHERE is_active = true AND category_id = :categoryId " +
+            "AND difficulty = :difficulty ORDER BY RANDOM() LIMIT :count", nativeQuery = true)
+    List<Problem> findRandomByCategoryAndDifficultyAndActive(
+            @Param("categoryId") Long categoryId,
+            @Param("difficulty") String difficulty,
+            @Param("count") int count
     );
 
     /**

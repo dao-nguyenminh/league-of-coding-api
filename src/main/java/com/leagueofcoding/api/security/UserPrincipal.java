@@ -13,15 +13,11 @@ import java.util.Collections;
 /**
  * UserPrincipal - Đại diện cho authenticated user trong Spring Security context.
  *
- * <p>Wrapper class cho User entity, implements UserDetails interface để
- * Spring Security có thể sử dụng thông tin user trong authentication & authorization.
- *
  * @author dao-nguyenminh
  */
 @Data
 @AllArgsConstructor
 public class UserPrincipal implements UserDetails {
-
     private Long id;
     private String username;
     private String email;
@@ -35,8 +31,9 @@ public class UserPrincipal implements UserDetails {
      * @return UserPrincipal object
      */
     public static UserPrincipal create(User user) {
+        // Use dynamic role from user entity
         Collection<GrantedAuthority> authorities = Collections.singletonList(
-                new SimpleGrantedAuthority("ROLE_USER")
+                new SimpleGrantedAuthority("ROLE_" + user.getRole().name())
         );
 
         return new UserPrincipal(
