@@ -20,8 +20,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = {"category", "createdBy", "testCases"})
-@EqualsAndHashCode(of = "id")
 public class Problem {
 
     @Id

@@ -1,4 +1,3 @@
-// entity/TestCase.java
 package com.leagueofcoding.api.entity;
 
 import jakarta.persistence.*;
@@ -7,7 +6,7 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 /**
- * TestCase entity - Test cases cho problem validation.
+ * TestCase entity - Test cases for problem validation.
  *
  * @author dao-nguyenminh
  */
@@ -18,8 +17,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = "problem")
-@EqualsAndHashCode(of = "id")
 public class TestCase {
 
     @Id

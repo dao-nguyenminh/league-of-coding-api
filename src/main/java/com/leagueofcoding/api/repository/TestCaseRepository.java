@@ -17,26 +17,20 @@ import java.util.List;
 public interface TestCaseRepository extends JpaRepository<TestCase, Long> {
 
     /**
-     * Find sample test cases by problem ID (visible to users).
+     * Find all test cases for a problem.
      */
-    @Query("SELECT tc FROM TestCase tc WHERE tc.problem.id = :problemId AND tc.isSample = true ORDER BY tc.orderIndex")
+    @Query("SELECT t FROM TestCase t WHERE t.problem.id = :problemId ORDER BY t.orderIndex, t.id")
+    List<TestCase> findByProblemId(@Param("problemId") Long problemId);
+
+    /**
+     * Find sample test cases for a problem (visible to users).
+     */
+    @Query("SELECT t FROM TestCase t WHERE t.problem.id = :problemId " +
+            "AND t.isSample = true ORDER BY t.orderIndex, t.id")
     List<TestCase> findSampleTestCasesByProblemId(@Param("problemId") Long problemId);
 
     /**
-     * Find all test cases by problem ID (admin only).
+     * Count test cases for a problem.
      */
-    @Query("SELECT tc FROM TestCase tc WHERE tc.problem.id = :problemId ORDER BY tc.isSample DESC, tc.orderIndex")
-    List<TestCase> findAllTestCasesByProblemId(@Param("problemId") Long problemId);
-
-    /**
-     * Count test cases by problem ID.
-     */
-    @Query("SELECT COUNT(tc) FROM TestCase tc WHERE tc.problem.id = :problemId")
-    long countByProblemId(@Param("problemId") Long problemId);
-
-    /**
-     * Count sample test cases by problem ID.
-     */
-    @Query("SELECT COUNT(tc) FROM TestCase tc WHERE tc.problem.id = :problemId AND tc.isSample = true")
-    long countSampleTestCasesByProblemId(@Param("problemId") Long problemId);
+    long countByProblemId(Long problemId);
 }

@@ -1,11 +1,15 @@
 package com.leagueofcoding.api.entity;
 
-import com.leagueofcoding.api.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
 
+/**
+ * User entity - Core user account information.
+ *
+ * @author dao-nguyenminh
+ */
 @Entity
 @Table(name = "users")
 @Getter
@@ -13,48 +17,51 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = "password")
-@EqualsAndHashCode(of = "id")
 public class User {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "username", nullable = false, unique = true, length = 50)
+    @Column(nullable = false, unique = true)
     private String username;
 
-    @Column(name = "email", nullable = false, unique = true)
+    @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(name = "password", nullable = false)
+    @Column(nullable = false)
     private String password;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false, length = 20)
+    @Column(nullable = false)
     @Builder.Default
-    private Role role = Role.USER;
+    private String roles = "ROLE_USER";
 
+    @Column(nullable = false)
     @Builder.Default
-    @Column(name = "rating", nullable = false)
     private Integer rating = 1000;
 
-    @Builder.Default
     @Column(name = "total_matches", nullable = false)
+    @Builder.Default
     private Integer totalMatches = 0;
 
+    @Column(nullable = false)
     @Builder.Default
-    @Column(name = "wins", nullable = false)
     private Integer wins = 0;
 
+    @Column(nullable = false)
     @Builder.Default
-    @Column(name = "losses", nullable = false)
     private Integer losses = 0;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
+    @Column(name = "updated_at", nullable = false)
+    @Builder.Default
+    private LocalDateTime updatedAt = LocalDateTime.now();
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 }

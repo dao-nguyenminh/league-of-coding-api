@@ -2,22 +2,25 @@ package com.leagueofcoding.api.security;
 
 import com.leagueofcoding.api.entity.User;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
- * UserPrincipal - Đại diện cho authenticated user trong Spring Security context.
+ * UserPrincipal - Spring Security UserDetails implementation.
  *
  * @author dao-nguyenminh
  */
-@Data
+@Getter
 @AllArgsConstructor
 public class UserPrincipal implements UserDetails {
+
     private Long id;
     private String username;
     private String email;
@@ -25,16 +28,10 @@ public class UserPrincipal implements UserDetails {
     private Collection<? extends GrantedAuthority> authorities;
 
     /**
-     * Factory method tạo UserPrincipal từ User entity.
-     *
-     * @param user User entity từ database
-     * @return UserPrincipal object
+     * Create UserPrincipal from User entity.
      */
     public static UserPrincipal create(User user) {
-        // Use dynamic role from user entity
-        Collection<GrantedAuthority> authorities = Collections.singletonList(
-                new SimpleGrantedAuthority("ROLE_" + user.getRole().name())
-        );
+        List<GrantedAuthority> authorities = parseRoles(user.getRoles());
 
         return new UserPrincipal(
                 user.getId(),
@@ -43,6 +40,22 @@ public class UserPrincipal implements UserDetails {
                 user.getPassword(),
                 authorities
         );
+    }
+
+    /**
+     * Parse roles string to authorities.
+     * <p>
+     * Example: "ROLE_USER,ROLE_ADMIN" → [ROLE_USER, ROLE_ADMIN]
+     */
+    private static List<GrantedAuthority> parseRoles(String roles) {
+        if (roles == null || roles.isEmpty()) {
+            return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+        }
+
+        return Arrays.stream(roles.split(","))
+                .map(String::trim)
+                .map(SimpleGrantedAuthority::new)
+                .collect(Collectors.toList());
     }
 
     @Override

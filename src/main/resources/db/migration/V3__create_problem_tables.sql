@@ -1,4 +1,3 @@
--- V3__create_problem_tables.sql
 -- ========================================
 -- League Of Coding - Database Migration V3
 -- Create problem library tables
@@ -17,8 +16,10 @@ CREATE TABLE categories
 
 CREATE INDEX idx_categories_slug ON categories (slug);
 
-COMMENT ON TABLE categories IS 'Problem categories (Arrays, Strings, Dynamic Programming, etc.)';
-COMMENT ON COLUMN categories.slug IS 'URL-friendly identifier (e.g., dynamic-programming)';
+COMMENT
+ON TABLE categories IS 'Problem categories (Arrays, Strings, Dynamic Programming, etc.)';
+COMMENT
+ON COLUMN categories.slug IS 'URL-friendly identifier (e.g., dynamic-programming)';
 
 -- ========== Problems Table ==========
 CREATE TABLE problems
@@ -48,11 +49,16 @@ CREATE INDEX idx_problems_category_id ON problems (category_id);
 CREATE INDEX idx_problems_is_active ON problems (is_active);
 CREATE INDEX idx_problems_created_at ON problems (created_at DESC);
 
-COMMENT ON TABLE problems IS 'Coding problems for battles';
-COMMENT ON COLUMN problems.slug IS 'SEO-friendly URL identifier (e.g., two-sum)';
-COMMENT ON COLUMN problems.time_limit_ms IS 'Execution time limit in milliseconds';
-COMMENT ON COLUMN problems.memory_limit_mb IS 'Memory limit in megabytes';
-COMMENT ON COLUMN problems.is_active IS 'Soft delete flag - false means archived';
+COMMENT
+ON TABLE problems IS 'Coding problems for battles';
+COMMENT
+ON COLUMN problems.slug IS 'SEO-friendly URL identifier (e.g., two-sum)';
+COMMENT
+ON COLUMN problems.time_limit_ms IS 'Execution time limit in milliseconds';
+COMMENT
+ON COLUMN problems.memory_limit_mb IS 'Memory limit in megabytes';
+COMMENT
+ON COLUMN problems.is_active IS 'Soft delete flag - false means archived';
 
 -- ========== Test Cases Table ==========
 CREATE TABLE test_cases
@@ -72,9 +78,12 @@ CREATE TABLE test_cases
 CREATE INDEX idx_test_cases_problem_id ON test_cases (problem_id);
 CREATE INDEX idx_test_cases_is_sample ON test_cases (is_sample);
 
-COMMENT ON TABLE test_cases IS 'Test cases for problem validation';
-COMMENT ON COLUMN test_cases.is_sample IS 'True if visible to users (example), false if hidden (validation only)';
-COMMENT ON COLUMN test_cases.order_index IS 'Display order for sample test cases';
+COMMENT
+ON TABLE test_cases IS 'Test cases for problem validation';
+COMMENT
+ON COLUMN test_cases.is_sample IS 'True if visible to users (example), false if hidden (validation only)';
+COMMENT
+ON COLUMN test_cases.order_index IS 'Display order for sample test cases';
 
 -- ========== Seed Data: Categories ==========
 INSERT INTO categories (name, slug, description)
