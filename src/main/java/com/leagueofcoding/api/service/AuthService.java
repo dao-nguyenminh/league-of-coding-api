@@ -6,7 +6,6 @@ import com.leagueofcoding.api.dto.RegisterRequest;
 import com.leagueofcoding.api.dto.UserResponse;
 import com.leagueofcoding.api.entity.RefreshToken;
 import com.leagueofcoding.api.entity.User;
-import com.leagueofcoding.api.enums.Role;
 import com.leagueofcoding.api.exception.EmailAlreadyExistsException;
 import com.leagueofcoding.api.exception.RateLimitExceededException;
 import com.leagueofcoding.api.exception.UsernameAlreadyExistsException;
@@ -41,7 +40,7 @@ public class AuthService {
     private final RateLimitService rateLimitService;
 
     /**
-     * Register user mới với role assignment.
+     * Register user mới với rate limiting.
      */
     @Transactional
     public AuthResponse register(RegisterRequest request, String clientIp) {
@@ -51,7 +50,7 @@ public class AuthService {
         if (!rateLimitService.tryConsumeRegister(clientIp)) {
             throw new RateLimitExceededException(
                     "Too many registration attempts. Please try again later.",
-                    3600 // 1 hour
+                    3600
             );
         }
 
@@ -68,15 +67,12 @@ public class AuthService {
             );
         }
 
-        // Determine role (first user becomes admin, others become user)
-        Role role = determineUserRole();
-
         // Create user
         User user = User.builder()
                 .username(request.username())
                 .email(request.email())
                 .password(passwordEncoder.encode(request.password()))
-                .role(role)  // <-- Set role dynamically
+                .roles("ROLE_USER")         // ← ADDED! Explicit role
                 .rating(1000)
                 .totalMatches(0)
                 .wins(0)
@@ -84,7 +80,7 @@ public class AuthService {
                 .build();
 
         user = userRepository.save(user);
-        log.info("User registered successfully: {} with role: {}", user.getId(), user.getRole());
+        log.info("User registered successfully: {}", user.getId());
 
         // Generate tokens
         UserPrincipal userPrincipal = UserPrincipal.create(user);
@@ -100,15 +96,6 @@ public class AuthService {
                 refreshToken.getToken(),
                 UserResponse.from(user)
         );
-    }
-
-    /**
-     * Determine user role based on existing users.
-     * First user becomes admin, subsequent users become regular users.
-     */
-    private Role determineUserRole() {
-        long userCount = userRepository.count();
-        return userCount == 0 ? Role.ADMIN : Role.USER;
     }
 
     /**

@@ -1,35 +1,27 @@
 package com.leagueofcoding.api.dto.problem;
 
 import com.leagueofcoding.api.entity.Problem;
-import lombok.Builder;
-
-import java.time.LocalDateTime;
+import com.leagueofcoding.api.enums.Difficulty;
 
 /**
- * ProblemSummaryResponse - DTO cho problem listing (không có chi tiết).
+ * ProblemSummaryResponse - DTO cho problem listing (without full description).
  *
  * @author dao-nguyenminh
  */
-@Builder
 public record ProblemSummaryResponse(
         Long id,
         String title,
         String slug,
-        String difficulty,
-        String categoryName,
-        String categorySlug,
-        LocalDateTime createdAt
+        Difficulty difficulty,
+        CategoryResponse category
 ) {
-
     public static ProblemSummaryResponse from(Problem problem) {
-        return ProblemSummaryResponse.builder()
-                .id(problem.getId())
-                .title(problem.getTitle())
-                .slug(problem.getSlug())
-                .difficulty(problem.getDifficulty().name())
-                .categoryName(problem.getCategory().getName())
-                .categorySlug(problem.getCategory().getSlug())
-                .createdAt(problem.getCreatedAt())
-                .build();
+        return new ProblemSummaryResponse(
+                problem.getId(),
+                problem.getTitle(),
+                problem.getSlug(),
+                problem.getDifficulty(),
+                CategoryResponse.from(problem.getCategory())
+        );
     }
 }

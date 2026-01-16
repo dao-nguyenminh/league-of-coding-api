@@ -1,7 +1,7 @@
 package com.leagueofcoding.api.enums;
 
 /**
- * Difficulty enum cho coding problems.
+ * Difficulty - Problem difficulty levels.
  *
  * @author dao-nguyenminh
  */
