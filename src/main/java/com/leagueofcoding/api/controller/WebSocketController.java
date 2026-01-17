@@ -1,6 +1,7 @@
 package com.leagueofcoding.api.controller;
 
 import com.leagueofcoding.api.dto.websocket.ChatMessage;
+import com.leagueofcoding.api.dto.websocket.NotificationMessage;
 import com.leagueofcoding.api.dto.websocket.UserStatusMessage;
 import com.leagueofcoding.api.service.OnlineUsersService;
 import lombok.RequiredArgsConstructor;
@@ -15,10 +16,9 @@ import org.springframework.stereotype.Controller;
 import java.util.Objects;
 
 /**
- * WebSocketController - WebSocket message handlers.
+ * WebSocketController - Handle WebSocket messages.
  *
  * @author dao-nguyenminh
- * @since 2025-01-16
  */
 @Slf4j
 @Controller
@@ -30,7 +30,6 @@ public class WebSocketController {
 
     /**
      * Handle chat messages.
-     * <p>
      * Client sends to: /app/chat.send
      * Server broadcasts to: /topic/public
      */
@@ -42,55 +41,60 @@ public class WebSocketController {
     }
 
     /**
-     * Handle user join.
-     * <p>
-     * Client sends to: /app/chat.join
-     * Server broadcasts to: /topic/public
+     * Handle user connect.
+     * Client sends to: /app/user.connect
      */
-    @MessageMapping("/chat.join")
-    @SendTo("/topic/public")
-    public ChatMessage joinUser(
-            @Payload ChatMessage message,
+    @MessageMapping("/user.connect")
+    public void userConnect(
+            @Payload UserStatusMessage message,
             SimpMessageHeaderAccessor headerAccessor
     ) {
-        String username = message.sender();
+        String username = message.username();
 
-        // Add username to WebSocket session
+        // Store username in session
         Objects.requireNonNull(headerAccessor.getSessionAttributes()).put("username", username);
 
-        // Track online user
+        // Add to online users
         onlineUsersService.addUser(username);
+        log.info("User connected: {} (Total online: {})",
+                username, onlineUsersService.getOnlineCount());
 
-        // Broadcast user status
+        // Broadcast status
         UserStatusMessage status = UserStatusMessage.online(
                 username,
                 onlineUsersService.getOnlineCount()
         );
-        messagingTemplate.convertAndSend("/topic/user.status", status);
-
-        log.info("User joined: {}", username);
-        return ChatMessage.join(username);
+        messagingTemplate.convertAndSend("/topic/user-status", status);
     }
 
     /**
-     * Send notification to specific user.
-     * <p>
-     * Example: Send match found notification
+     * Handle user disconnect.
+     * Client sends to: /app/user.disconnect
      */
-    public void sendNotificationToUser(String username, Object notification) {
-        messagingTemplate.convertAndSendToUser(
+    @MessageMapping("/user.disconnect")
+    public void userDisconnect(@Payload UserStatusMessage message) {
+        String username = message.username();
+
+        onlineUsersService.removeUser(username);
+        log.info("User disconnected: {} (Total online: {})",
+                username, onlineUsersService.getOnlineCount());
+
+        // Broadcast status
+        UserStatusMessage status = UserStatusMessage.offline(
                 username,
-                "/queue/notifications",
-                notification
+                onlineUsersService.getOnlineCount()
         );
-        log.info("Sent notification to user: {}", username);
+        messagingTemplate.convertAndSend("/topic/user-status", status);
     }
 
     /**
-     * Broadcast notification to all users.
+     * Handle notifications.
+     * Client sends to: /app/notification.send
      */
-    public void broadcastNotification(Object notification) {
-        messagingTemplate.convertAndSend("/topic/notifications", notification);
-        log.info("Broadcast notification to all users");
+    @MessageMapping("/notification.send")
+    @SendTo("/topic/notifications")
+    public NotificationMessage sendNotification(@Payload NotificationMessage notification) {
+        log.info("Notification: {} - {}", notification.type(), notification.message());
+        return notification;
     }
 }

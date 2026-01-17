@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Test - League of Coding</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 15px 15px 0 0;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 30px;
+        }
+
+        .section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .status.disconnected {
+            background: #fee;
+            color: #c00;
+        }
+
+        .status.connected {
+            background: #efe;
+            color: #0a0;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .messages {
+            height: 300px;
+            overflow-y: auto;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .message {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+
+        .message.chat {
+            background: #e3f2fd;
+        }
+
+        .message.notification {
+            background: #fff3e0;
+        }
+
+        .message.status {
+            background: #f3e5f5;
+        }
+
+        .online-users {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+            min-height: 60px;
+        }
+
+        .user-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🎮 WebSocket Test Client</h1>
+        <p>League of Coding - Real-time Testing</p>
+    </div>
+
+    <div class="content">
+        <!-- Connection -->
+        <div class="section">
+            <h2>🔌 Connection</h2>
+            <div id="status" class="status disconnected">❌ Disconnected</div>
+            <div class="form-group">
+                <label>Username:</label>
+                <input type="text" id="username" value="user1" placeholder="Enter username">
+            </div>
+            <button id="connectBtn" onclick="connect()">Connect</button>
+            <button id="disconnectBtn" onclick="disconnect()" disabled>Disconnect</button>
+        </div>
+
+        <!-- Chat -->
+        <div class="section">
+            <h2>💬 Send Chat</h2>
+            <div class="form-group">
+                <label>Message:</label>
+                <textarea id="chatMsg" rows="3"></textarea>
+            </div>
+            <button onclick="sendChat()" id="sendChatBtn" disabled>Send</button>
+        </div>
+
+        <!-- Notification -->
+        <div class="section">
+            <h2>🔔 Send Notification</h2>
+            <div class="form-group">
+                <label>Type:</label>
+                <select id="notifType">
+                    <option value="MATCH_FOUND">Match Found</option>
+                    <option value="SYSTEM">System</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Message:</label>
+                <input type="text" id="notifMsg" placeholder="Notification message">
+            </div>
+            <button onclick="sendNotif()" id="sendNotifBtn" disabled>Send</button>
+        </div>
+
+        <!-- Online Users -->
+        <div class="section">
+            <h2>👥 Online Users</h2>
+            <div class="online-users" id="onlineList">
+                <p style="color: #999;">Not connected</p>
+            </div>
+            <button onclick="refresh()" id="refreshBtn" disabled>Refresh</button>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    <div style="padding: 0 30px 30px 30px;">
+        <div class="section">
+            <h2>📨 Messages</h2>
+            <div class="messages" id="messages">
+                <p style="color: #999;">No messages</p>
+            </div>
+            <button onclick="clearMsg()">Clear</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let stompClient = null;
+    let username = null;
+
+    function connect() {
+        username = document.getElementById('username').value.trim();
+        if (!username) {
+            alert('Enter username!');
+            return;
+        }
+
+        const socket = new SockJS('http://localhost:8080/ws');
+        stompClient = Stomp.over(socket);
+        stompClient.connect({}, onConnected, onError);
+    }
+
+    function onConnected() {
+        console.log('Connected!');
+
+        document.getElementById('status').className = 'status connected';
+        document.getElementById('status').textContent = '✅ Connected: ' + username;
+        document.getElementById('connectBtn').disabled = true;
+        document.getElementById('disconnectBtn').disabled = false;
+        document.getElementById('sendChatBtn').disabled = false;
+        document.getElementById('sendNotifBtn').disabled = false;
+        document.getElementById('refreshBtn').disabled = false;
+
+        stompClient.subscribe('/topic/public', msg => {
+            showMessage(JSON.parse(msg.body), 'chat');
+        });
+
+        stompClient.subscribe('/topic/notifications', msg => {
+            showMessage(JSON.parse(msg.body), 'notification');
+        });
+
+        stompClient.subscribe('/topic/user-status', msg => {
+            showMessage(JSON.parse(msg.body), 'status');
+            refresh();
+        });
+
+        stompClient.send("/app/user.connect", {}, JSON.stringify({
+            username: username,
+            status: 'ONLINE',
+            onlineCount: 0,
+            timestamp: new Date().toISOString()
+        }));
+
+        setTimeout(refresh, 500);
+    }
+
+    function onError(error) {
+        console.error('Error:', error);
+        document.getElementById('status').textContent = '❌ Error!';
+    }
+
+    function disconnect() {
+        if (stompClient) {
+            stompClient.send("/app/user.disconnect", {}, JSON.stringify({
+                username: username,
+                status: 'OFFLINE',
+                onlineCount: 0,
+                timestamp: new Date().toISOString()
+            }));
+            stompClient.disconnect();
+        }
+
+        document.getElementById('status').className = 'status disconnected';
+        document.getElementById('status').textContent = '❌ Disconnected';
+        document.getElementById('connectBtn').disabled = false;
+        document.getElementById('disconnectBtn').disabled = true;
+        document.getElementById('sendChatBtn').disabled = true;
+        document.getElementById('sendNotifBtn').disabled = true;
+        document.getElementById('refreshBtn').disabled = true;
+    }
+
+    function sendChat() {
+        const content = document.getElementById('chatMsg').value.trim();
+        if (content && stompClient) {
+            stompClient.send("/app/chat.send", {}, JSON.stringify({
+                sender: username,
+                content: content,
+                timestamp: new Date().toISOString()
+            }));
+            document.getElementById('chatMsg').value = '';
+        }
+    }
+
+    function sendNotif() {
+        const type = document.getElementById('notifType').value;
+        const message = document.getElementById('notifMsg').value.trim();
+        if (message && stompClient) {
+            stompClient.send("/app/notification.send", {}, JSON.stringify({
+                type: type,
+                message: message,
+                timestamp: new Date().toISOString()
+            }));
+            document.getElementById('notifMsg').value = '';
+        }
+    }
+
+    function showMessage(msg, type) {
+        const container = document.getElementById('messages');
+        if (container.querySelector('p')) {
+            container.innerHTML = '';
+        }
+
+        const div = document.createElement('div');
+        div.className = `message ${type}`;
+
+        if (type === 'chat') {
+            div.innerHTML = `<strong>${msg.sender}:</strong> ${msg.content}`;
+        } else if (type === 'notification') {
+            div.innerHTML = `<strong>🔔 ${msg.type}:</strong> ${msg.message}`;
+        } else {
+            div.innerHTML = `<strong>👤 ${msg.username}</strong> is ${msg.status}`;
+        }
+
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function refresh() {
+        fetch('http://localhost:8080/api/users/online')
+            .then(r => r.json())
+            .then(users => {
+                const list = document.getElementById('onlineList');
+                list.innerHTML = '';
+                if (users.length === 0) {
+                    list.innerHTML = '<p style="color: #999;">No users</p>';
+                } else {
+                    users.forEach(u => {
+                        const badge = document.createElement('span');
+                        badge.className = 'user-badge';
+                        badge.textContent = u;
+                        list.appendChild(badge);
+                    });
+                }
+            })
+            .catch(e => console.error('Error:', e));
+    }
+
+    function clearMsg() {
+        document.getElementById('messages').innerHTML = '<p style="color: #999;">No messages</p>';
+    }
+</script>
+</body>
+</html>

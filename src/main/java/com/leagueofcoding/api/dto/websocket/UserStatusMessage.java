@@ -1,5 +1,7 @@
 package com.leagueofcoding.api.dto.websocket;
 
+import java.time.LocalDateTime;
+
 /**
  * UserStatusMessage - DTO cho user online status.
  *
@@ -7,21 +9,26 @@ package com.leagueofcoding.api.dto.websocket;
  */
 public record UserStatusMessage(
         String username,
-        UserStatus status,
-        Long onlineCount
+        String status,  // ONLINE, OFFLINE, AWAY
+        Long onlineCount,
+        LocalDateTime timestamp
 ) {
-    public enum UserStatus {
-        ONLINE,
-        OFFLINE,
-        IN_MATCH,
-        IN_QUEUE
+
+    public static UserStatusMessage online(String username, Long onlineCount) {
+        return new UserStatusMessage(
+                username,
+                "ONLINE",
+                onlineCount,
+                LocalDateTime.now()
+        );
     }
 
-    public static UserStatusMessage online(String username, Long count) {
-        return new UserStatusMessage(username, UserStatus.ONLINE, count);
-    }
-
-    public static UserStatusMessage offline(String username, Long count) {
-        return new UserStatusMessage(username, UserStatus.OFFLINE, count);
+    public static UserStatusMessage offline(String username, Long onlineCount) {
+        return new UserStatusMessage(
+                username,
+                "OFFLINE",
+                onlineCount,
+                LocalDateTime.now()
+        );
     }
 }
