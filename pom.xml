@@ -159,6 +159,19 @@
             <artifactId>jackson-databind</artifactId>
         </dependency>
 
+        <!-- Redis for queue management -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+        <!-- Lettuce Redis client (included with spring-boot-starter-data-redis) -->
+        <!-- But if need connection pooling: -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
+        </dependency>
+
         <!-- ========== Testing ========== -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
