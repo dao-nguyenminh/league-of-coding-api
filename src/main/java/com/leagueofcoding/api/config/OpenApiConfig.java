@@ -17,7 +17,6 @@ import java.util.List;
  * OpenApiConfig - Swagger/OpenAPI configuration.
  *
  * @author dao-nguyenminh
- * @since 2025-01-12
  */
 @Configuration
 public class OpenApiConfig {

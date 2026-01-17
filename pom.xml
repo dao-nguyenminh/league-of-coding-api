@@ -147,6 +147,18 @@
             <version>${springdoc.version}</version>
         </dependency>
 
+        <!-- WebSocket Support -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
+        <!-- For JSON messaging -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
         <!-- ========== Testing ========== -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
