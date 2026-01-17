@@ -33,11 +33,8 @@ public class RefreshTokenService {
      */
     @Transactional
     public RefreshToken createRefreshToken(User user) {
-        // Revoke existing refresh token (1 user chỉ có 1 active refresh token)
-        refreshTokenRepository.findByUser(user).ifPresent(existingToken -> {
-            existingToken.setRevoked(true);
-            refreshTokenRepository.save(existingToken);
-        });
+        // Delete ALL existing refresh tokens
+        revokeAllUserTokens(user);
 
         // Create new refresh token
         RefreshToken refreshToken = RefreshToken.builder()
